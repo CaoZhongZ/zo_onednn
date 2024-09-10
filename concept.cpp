@@ -27,6 +27,14 @@ primitive_ext create_matmul_int4(const tensor... tensors, F f_attr) {
 // Users could just do a simple wrapper for the exposed symbols to python
 void matmul_int4(const tensor ...) {
   auto executable = create_matmul_int4(tensors...,[]{});
+  executable.set_args(DNNL_ARG_ATTR_SCALES | DNNL_ARG_WEIGHTS, scale.data_ptr(),
+      [&]() {
+        return get_onednn_md(scale);
+      });
+  executable.set_args(DNNL_ARG_ATTR_ZERO_POINTS | DNNL_ARG_WEIGHTS, zp.data_ptr(),
+      [&]() {
+        return get_onednn_md(zp);
+      });
   executable(stream, engine,
    {{DNNL_ARG_SRC, src.data_ptr()},{DNNL_ARG_WEIGHT, weight.data_ptr()}, {..} });
 }
@@ -39,6 +47,14 @@ void matmul_int4_silu(const tensor...) {
     attr.set_post_ops(op);
   };
   auto executable = create_matmul_int4(tensors..., silu);
+  executable.set_args(DNNL_ARG_ATTR_SCALES | DNNL_ARG_WEIGHTS, scale.data_ptr(),
+      [&]() {
+        return get_onednn_md(scale);
+      });
+  executable.set_args(DNNL_ARG_ATTR_ZERO_POINTS | DNNL_ARG_WEIGHTS, zp.data_ptr(),
+      [&]() {
+        return get_onednn_md(zp);
+      });
   executable(stream, engine,
    {{DNNL_ARG_SRC, src.data_ptr()}, {DNNL_ARG_WEIGHT, weight.data_ptr()} });
 }
@@ -51,6 +67,14 @@ void matmul_int4_resadd(const tensor ...) {
     attr.set_post_ops(op);
   };
   auto executable = create_matmul_int4(tensors..., resadd);
+  executable.set_args(DNNL_ARG_ATTR_SCALES | DNNL_ARG_WEIGHTS, scale.data_ptr(),
+      [&]() {
+        return get_onednn_md(scale);
+      });
+  executable.set_args(DNNL_ARG_ATTR_ZERO_POINTS | DNNL_ARG_WEIGHTS, zp.data_ptr(),
+      [&]() {
+        return get_onednn_md(zp);
+      });
   executable(stream, engine,
    {{DNNL_ARG_SRC, src.data_ptr()}, {DNNL_ARG_WEIGHT, weight.data_ptr()} });
 }

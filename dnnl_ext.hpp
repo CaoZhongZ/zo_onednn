@@ -199,6 +199,22 @@ public:
     }
     primitive::execute(astream, args);
   }
+  
+  void execute(const stream& astream) {
+    primitive::execute(astream, args);
+  }
+
+  template <typename M>
+  void set_arg(int type, void* handle, M constructor) {
+    auto it = args.find(type);
+
+    if (it == args.end()) {
+      // slow path that we avoid recall the constructor
+      args.emplace(type, constructor(handle));
+    } else {
+      it->second.set_data_handle(handle);
+    }
+  }
 private:
   std::unordered_map<int, memory> args;
 };
