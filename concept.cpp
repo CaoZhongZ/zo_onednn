@@ -1,3 +1,5 @@
+#include <dnnl_ext.hpp>
+
 template <typename F>
 primitive_ext create_matmul_int4(const tensor... tensors, F f_attr) {
   auto key = shapes_of_all_tensors(tensors);
