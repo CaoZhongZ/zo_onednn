@@ -27,6 +27,8 @@ primitive_ext create_matmul_int4(const tensor... tensors, F f_attr) {
 // Users could just do a simple wrapper for the exposed symbols to python
 void matmul_int4(const tensor ...) {
   auto executable = create_matmul_int4(tensors...,[]{});
+
+  // Lack of query facility requires following interface
   executable.set_args(DNNL_ARG_ATTR_SCALES | DNNL_ARG_WEIGHTS, scale.data_ptr(),
       [&]() {
         return get_onednn_md(scale);
