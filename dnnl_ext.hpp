@@ -185,37 +185,52 @@ public:
     }
   }
 
-  void execute(
-    const stream& astream,
-    const engine& aengine,
-    std::vector<std::pair<int, void *>>&& handles
-  ) const {
-    for (const auto &p : handles) {
-      auto it = args.find(p.first);
-      if (it == args.end())
-        args.emplace(p.first, make_args(p.first, aengine, p.second));
-      else
-        it->second.set_data_handle(p.second);
-    }
-    primitive::execute(astream, args);
+  memory make_args(int arg_class, void* handle) {
+    auto a_engine = query_engine();
+    make_args(arg_class, a_engine, handle);
   }
-  
+
   void execute(const stream& astream) {
-    primitive::execute(astream, args);
+    executed_once = true;
+    std::vector<dnnl_exec_arg_t> c_args;
+    c_args.reserve(n_args);
+
+    for (int i = 0; i < n_args; ++ i)
+      c_args.push_back(args[i].type, args[i].m_arg.get());
+
+    error::wrap_c_api(dnnl_primitive_execute(this->get(), astream.get(),
+                              n_args, args),
+            "could not execute a primitive");
   }
 
   template <typename M>
-  void set_arg(int type, void* handle, M constructor) {
-    auto it = args.find(type);
-
-    if (it == args.end()) {
+  void set_arg(int type, int slot, void* handle, M constructor) {
+    if (!executed_once) {
       // slow path that we avoid recall the constructor
-      args.emplace(type, constructor(handle));
+      args[slot] = { type, make_args(type, constructor(handle)) };
     } else {
-      it->second.set_data_handle(handle);
+      args[slot].m_arg.set_data_handle(handle);
     }
+    n_args ++;
+  }
+
+  void set_arg(int type, int slot, void* handle) {
+    if (!executed_once) {
+      // slow path that we avoid recall the constructor
+      args[slot] = {type, make_args(type, handle)};
+    } else {
+      args[slot].m_arg.set_data_handle(handle);
+    }
+    n_args ++;
   }
 private:
-  std::unordered_map<int, memory> args;
+  struct exec_arg_t {
+    int type;
+    memory m_arg;
+  };
+
+  exec_arg_t args[MAX_ARGS];
+  int n_args;
+  bool executed_once {false};
 };
 }
